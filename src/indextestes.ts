@@ -1,6 +1,5 @@
 import {Message, Whatsapp, create } from "venom-bot"
-//import mime from 'mime-types'
-
+import {createPersonAndDeal, getDealId, getPerson} from './utils/utilsagendor.js'
 
 /*import fs from 'fs'
 import OpenAI from "openai";
@@ -42,7 +41,16 @@ create({
     async function start(client: Whatsapp) {
     client.onMessage( async (message:Message) => {
        if (message.isMedia === true || message.isMMS === true) return
-       await client.clearChatMessages(message.from);
+       let customer = `${message.from.replace('@c.us', '')}`;
+       console.log(message.from)
+       customer = customer.substring(2)
+       console.log(customer)
+       let idperson = await getPerson(customer)
+       if(!idperson){
+          await createPersonAndDeal(message.sender.pushname, `+55${customer}`, customer);
+         }
+         let idNegocio = await getDealId(customer)
+         console.log(idNegocio)
        
       /* let customer = `+${message.from.replace('@c.us', '')}`;
               if(message.body){

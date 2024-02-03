@@ -91,8 +91,7 @@ create({
           //const assistantMessage = `role: assistant, content:${apiResponse.text} `
           //await updatePerson(customer, assistantMessage)
         }
-                }
-                
+                }             
     });
     
   }

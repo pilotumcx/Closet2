@@ -5,7 +5,7 @@
   import express, { Request, Response } from 'express';
   import bodyParser from 'body-parser';
   import {sendVideoWithRetry, audio, convertToBrasiliaTimezone} from './utils/utils.js'
-  import { updateStatus, followUp, getDealId, getStageIdBasedOnAttempt, updateStage, saveNote, createNotePerson, getPerson, createPerson, criarNegócioPessoa } from "./utils/utilsagendor.js";
+  import { updateStatus, followUp, getDealId, getStageIdBasedOnAttempt, updateStage, saveNote, createNotePerson, getPerson, createPersonAndDeal, criarNegócioPessoa } from "./utils/utilsagendor.js";
   ///////////////////////////////declaração de variaveis globais/////////////////////
   const app = express();
   app.use(bodyParser.json());
@@ -84,7 +84,7 @@
       } 
 
       if(!idperson){
-        const response:any = await createPerson(message.sender.pushname, `+55${customer}`, customer);
+        const response:any = await createPersonAndDeal(message.sender.pushname, `+55${customer}`, customer);
         console.log(response.data.data.id)
         await criarNegócioPessoa (response.data.data.id)
         }

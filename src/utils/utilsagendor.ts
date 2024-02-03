@@ -50,9 +50,9 @@ try {
         },
     })
    id = response.data.data[0].id
-    console.log(id)
+   console.log(id)
     } catch (error) {
-        console.error('Erro na requisição:', error);
+        //console.error('Erro na requisição:', error);
     }
    // console.log(fomratnum)
     return id
@@ -147,55 +147,57 @@ export async function createNotePerson(number:string, chat:any){
     }
 
 ///////////////função para atualizat pessoa/////////////
-export async function updatePerson (id:number, mobile:string){
-    let data = JSON.stringify({
-        "contact": {
-          "mobile": mobile
-      }
-    });
-    let config = {
-      method: 'put',
-      maxBodyLength: Infinity,
-      url: `https://api.agendor.com.br/v3/people/${id}`,
-      headers: { 
-        'Authorization': `${token}`, 
-        'Content-Type': 'application/json'
-      },
-      data : data
-    };
-    
-    axios.request(config)
-    .then((response) => {
-      console.log(JSON.stringify(response.data.data));
-    })
-    .catch((error) => {
-      console.log(error);
-    })
+
+export async function updatePerson (id:number, number:string){
+  let data = JSON.stringify({
+      "contact": {
+        "mobile": number
     }
+  });
+  let config = {
+    method: 'put',
+    maxBodyLength: Infinity,
+    url: `https://api.agendor.com.br/v3/people/${id}`,
+    headers: { 
+      'Authorization': `${token}`, 
+      'Content-Type': 'application/json'
+    },
+    data : data
+  };
+  
+  axios.request(config)
+  .then((response) => {
+    console.log(JSON.stringify(response.data.data));
+  })
+  .catch((error) => {
+    console.log(error);
+  })
+  }
 
     ////////////////////////////////////função para criar pessoa caso não esteja cadastrada////////////////////////////
-    export async function createPerson(name: string, whatsapp:string, mobile: string) {
-        const url = 'https://api.agendor.com.br/v3/people';
-    
-        const requestBody = {
-            name: `${name}`,
-            contact: {
-              mobile:`${mobile}`,
-              whatsapp:`${whatsapp}`
-            },
-        };
-        try {
-            const response = await axios.post(url, requestBody, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `${token}`
-                }
-            });
-            console.log('Pessoa criada com sucesso:', response.data.data);
-        } catch (error) {
-            console.error('Erro ao criar pessoa:', error);
-        }
-    }
+    export async function createPersonAndDeal(name: string, whatsapp:string, mobile: string) {
+      const url = 'https://api.agendor.com.br/v3/people';
+      const requestBody = {
+          name: `${name}`,
+          contact: {
+            mobile:`${mobile}`,
+            whatsapp:`${whatsapp}`
+          },
+      };
+      try {
+          const response = await axios.post(url, requestBody, {
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `${token}`
+              }
+          });
+          console.log('Pessoa criada com sucesso:', response.data.data);
+          const idpessoa = response.data.data.id
+          await criarNegócioPessoa(idpessoa)
+      } catch (error) {
+          console.error('Erro ao criar pessoa:', error);
+      }
+  }
     
     ///////função para pegar o numero da pessoa pela id, utilizada para conseguir os dados da pessoa quando é enviado menssagem e negócio//////////////////
    export async function getNumber (id:any){

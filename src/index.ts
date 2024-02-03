@@ -4,8 +4,8 @@
   import fs from 'fs';
   import express, { Request, Response } from 'express';
   import bodyParser from 'body-parser';
-  import {sendVideoWithRetry, audio, convertToBrasiliaTimezone, ajustarNumeroSeNecessario} from './utils/utils.js'
-  import { updateStatus, followUp, getDealId, getStageIdBasedOnAttempt, updateStage, saveNote, createNotePerson, getPerson, createPerson, criarNegócioPessoa } from "./utils/utilsagendor.js";
+  import {sendVideoWithRetry, audio, convertToBrasiliaTimezone, ajustarNumeroSeNecessario, formatarNumero} from './utils/utils.js'
+  import {updatePerson, updateStatus, followUp, getDealId, getStageIdBasedOnAttempt, updateStage, saveNote, createNotePerson, getPerson, createPersonAndDeal } from "./utils/utilsagendor.js";
   ///////////////////////////////declaração de variaveis globais/////////////////////
   const app = express();
   app.use(bodyParser.json());
@@ -80,25 +80,28 @@
     /////////////////função gatilho quando cliente manda menssagem//////////////////// 
       client.onMessage(async (message: Message) => {
       if (message.isMedia === true || message.isMMS === true) return;  
-        let customer = `${message.from.replace('@c.us', '')}`;
+      ////formatações de numero para o agendor////////////////
+        let customer = ajustarNumeroSeNecessario(message.from).replace('@c.us', '');
         customer = customer.substring(2)
-        let idperson = await getPerson(customer)
         console.log(customer)
-        let idNegocio = await getDealId(customer)
-        console.log(idNegocio)
-        
+        let idperson = await getPerson(customer)
+//////////verifica se a pessoa existe, se não exisitir, cria pessoa e negócio////////////////
+        if(!idperson){
+          const numberVerified = ajustarNumeroSeNecessario(message.from)
+          const mobile = formatarNumero(numberVerified)
+          await createPersonAndDeal(message.sender.pushname, `+55${customer}`, mobile);
+          }
+  ////////////consdição para parar folow-up////////////////
         if (clientsAwaitingResponse[customer]) {
           clearTimeout(followUpInfo[customer].timer);
           delete clientsAwaitingResponse[customer];
           delete followUpInfo[customer];
+          console.log("folow-up cancelado")
       } 
-
-      if(!idperson){
-        const response:any = await createPerson(message.sender.pushname, `+55${customer}`, customer);
-        console.log(response.data.data.id)
-        await criarNegócioPessoa (response.data.data.id)
-        }
-
+///////////////atribui id do negócio ///////////////////
+        let idNegocio = await getDealId(customer)
+        console.log(idNegocio)
+///////////////verificar se é imagem ou video ////////////////////////
         const mimeType = message.mimetype || '';
         const isMedia = mimeType.startsWith('image/') || mimeType.startsWith('video/');
         let input:any;
@@ -127,7 +130,6 @@
             }
           }
         }
-          console.log(message.sender.pushname);
           if (!messageBuffer[message.from]) {
             messageBuffer[message.from] = [];
         }
@@ -193,23 +195,33 @@
         try {
             console.log('Webhook recebido:', req.body);
               const response = req.body
-                const numberVerified = ajustarNumeroSeNecessario(response.telefone)
-                let customer = `${response.telefone.replace('@c.us', '').substring(2)}`
-                let idNegocio = await getDealId(customer)
-                console.log(idNegocio)          
+              const numberlength = response.telefone.length
+              let customer = `${response.telefone.replace('@c.us', '').substring(2)}`
+              const numberVerified = ajustarNumeroSeNecessario(response.telefone)
+              const mobile = formatarNumero(numberVerified)
+              let idNegocio = await getDealId(customer)
+              const numberVerified2 = numberVerified.replace('@c.us', '').substring(2)
+              console.log(idNegocio) 
+              if(numberlength>17){  
+               const idPessoa = await getPerson(customer)
+                await updatePerson(idPessoa, mobile)    
+              }
+                
                 if (clientGlobal) {
                   const apiResponse = await query({
                     "question": `responda essa menssagem exatamente como está a seguir:${response.mensagem}`,
                     "overrideConfig": {
-                        "sessionId": customer,
+                        "sessionId": numberVerified2,
                       }
                     });
                     await clientGlobal.sendText(numberVerified, apiResponse.text);
                 }   
             res.status(200).send('Webhook recebido com sucesso!');
-            clientsAwaitingResponse[customer] = true;
-            followUpInfo[customer] = { dealId: idNegocio, timer: null };
-            scheduleFollowUp(customer);
+            clientsAwaitingResponse[numberVerified2] = true;
+            console.log(clientsAwaitingResponse)
+            console.log(numberVerified2)
+            followUpInfo[numberVerified2] = { dealId: idNegocio, timer: null };
+            scheduleFollowUp(numberVerified2);
         } catch (error) {
             console.error('Erro ao processar o webhook:', error);
             res.status(500).send('Erro interno do servidor');
